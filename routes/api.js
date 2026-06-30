@@ -198,6 +198,39 @@ router.get('/profile', verifyTokenAndStatus, async (req, res) => {
         res.status(500).json({ success: false, message: "Gagal memuat profil" });
     }
 });
+
+router.put('/profile', verifyTokenAndStatus, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name, email } = req.body;
+        if (!name) {
+            return res.status(400).json({ success: false, message: "Nama tidak boleh kosong." });
+        }
+        await pool.query(
+            'UPDATE users SET name = ?, email = ? WHERE id = ?',
+            [name, email || null, userId]
+        );
+        const [rows] = await pool.query(
+            'SELECT id, name, phone, qr_code, saldo, tabungan, email FROM users WHERE id = ? LIMIT 1', 
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Profil berhasil diperbarui!",
+            data: rows[0]
+        });
+
+    } catch (error) {
+        console.error("Error Update Profile:", error.message);
+        res.status(500).json({ success: false, message: "Gagal memperbarui profil" });
+    }
+});
+
 // D3. SSE Realtime
 router.get('/topup-events', verifyTokenAndStatus, (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
