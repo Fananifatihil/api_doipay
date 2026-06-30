@@ -1,0 +1,93 @@
+<%- include('partials/head') %>
+<% const activePage = 'customers' %>
+<div class="app-layout">
+  <%- include('partials/sidebar') %>
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="breadcrumb"><span>Dashboards</span> / <span class="bc-active">Customer</span></div>
+        <h1 class="page-title">Data Customer</h1>
+      </div>
+      <div class="topbar-right">
+        <span class="badge-merchant"><i class="fa-solid fa-circle" style="color:#4ade80;font-size:8px"></i> Merchant Aktif</span>
+        <div class="avatar-wrap">
+          <div class="avatar"><%= merchant.name.charAt(0).toUpperCase() %></div>
+          <div>
+            <p class="avatar-name"><%= merchant.name %></p>
+            <p class="avatar-role">Merchant</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if (error && error.length > 0) { %>
+      <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <%= error[0] %></div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fa-solid fa-users"></i> Daftar Customer (<%= customers.length %>)</h3>
+        <form action="/customers" method="GET" class="search-inline">
+          <input type="text" name="search" placeholder="Cari nama, HP, email..." value="<%= search %>" />
+          <button type="submit" class="btn-primary"><i class="fa-solid fa-search"></i></button>
+          <% if (search) { %>
+            <a href="/customers" class="btn-reset"><i class="fa-solid fa-xmark"></i></a>
+          <% } %>
+        </form>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nama</th>
+              <th>No. HP</th>
+              <th>Email</th>
+              <th>Saldo</th>
+              <th>Status</th>
+              <th>Terdaftar</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (customers.length === 0) { %>
+              <tr><td colspan="8" class="text-center text-muted" style="padding:32px">
+                <i class="fa-solid fa-users" style="font-size:24px;margin-bottom:8px;display:block"></i>
+                Tidak ada customer ditemukan
+              </td></tr>
+            <% } else { %>
+              <% customers.forEach((c, i) => { %>
+                <tr>
+                  <td class="text-muted"><%= i + 1 %></td>
+                  <td>
+                    <div class="customer-cell">
+                      <div class="mini-avatar"><%= c.name.charAt(0) %></div>
+                      <%= c.name %>
+                    </div>
+                  </td>
+                  <td class="text-muted"><%= c.phone %></td>
+                  <td class="text-muted"><%= c.email %></td>
+                  <td class="amount-green">Rp <%= Number(c.saldo).toLocaleString('id-ID') %></td>
+                  <td>
+                    <span class="badge <%= c.is_active ? 'badge-success' : 'badge-failed' %>">
+                      <%= c.is_active ? 'Aktif' : 'Nonaktif' %>
+                    </span>
+                  </td>
+                  <td class="text-muted"><%= new Date(c.created_at).toLocaleDateString('id-ID') %></td>
+                  <td>
+                    <a href="/topup?phone=<%= c.phone %>" class="btn-action">
+                      <i class="fa-solid fa-wallet"></i> Top-up
+                    </a>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

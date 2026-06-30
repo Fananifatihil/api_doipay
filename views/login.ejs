@@ -1,0 +1,47 @@
+<%- include('partials/head') %>
+<div class="login-page">
+  <div class="login-left">
+    <div class="login-brand">
+      <i class="fa-solid fa-wallet"></i>
+      <span>DogiPay</span>
+    </div>
+    <h1>Merchant Portal</h1>
+    <p>Kelola top-up saldo customer dengan mudah dan cepat.</p>
+    <div class="login-features">
+      <div class="feat"><i class="fa-solid fa-bolt"></i> Proses Instan</div>
+      <div class="feat"><i class="fa-solid fa-shield-halved"></i> Aman & Terenkripsi</div>
+      <div class="feat"><i class="fa-solid fa-chart-line"></i> Laporan Real-time</div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-card">
+      <h2>Selamat Datang 👋</h2>
+      <p class="login-sub">Login ke akun merchant kamu</p>
+
+      <% if (error && error.length > 0) { %>
+        <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <%= error[0] %></div>
+      <% } %>
+      <% if (success && success.length > 0) { %>
+        <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success[0] %></div>
+      <% } %>
+
+      <form action="/login" method="POST">
+        <div class="form-group">
+          <label><i class="fa-solid fa-envelope"></i> Email</label>
+          <input type="email" name="email" placeholder="merchant@email.com" required />
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-lock"></i> Password</label>
+          <input type="password" name="password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-login">Login <i class="fa-solid fa-arrow-right"></i></button>
+      </form>
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)">
+        Belum punya akun? 
+        <a href="/register" style="color:var(--green);font-weight:500">Daftar di sini</a>
+      </p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

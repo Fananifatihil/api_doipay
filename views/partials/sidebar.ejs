@@ -1,0 +1,30 @@
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <i class="fa-solid fa-wallet"></i>
+    <span>DogiPay</span>
+  </div>
+
+  <p class="sidebar-section-label">Menu</p>
+
+  <a href="/dashboard" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'active' : '' %>">
+    <i class="fa-solid fa-chart-pie"></i> Dashboard
+  </a>
+  <a href="/topup" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'topup' ? 'active' : '' %>">
+    <i class="fa-solid fa-wallet"></i> Isi Saldo
+  </a>
+  <a href="/customers" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'customers' ? 'active' : '' %>">
+    <i class="fa-solid fa-users"></i> Customer
+  </a>
+  <a href="/riwayat" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'riwayat' ? 'active' : '' %>">
+    <i class="fa-solid fa-clock-rotate-left"></i> Riwayat
+  </a>
+  <a href="/estatement" class="nav-item <%= typeof activePage !== 'undefined' && activePage === 'estatement' ? 'active' : '' %>">
+    <i class="fa-solid fa-file-invoice-dollar"></i> E-Statement
+  </a>
+
+  <p class="sidebar-section-label" style="margin-top:auto">Akun</p>
+
+  <a href="/logout" class="nav-item nav-logout">
+    <i class="fa-solid fa-right-from-bracket"></i> Logout
+  </a>
+</nav>

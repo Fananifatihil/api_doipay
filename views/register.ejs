@@ -1,0 +1,67 @@
+<%- include('partials/head') %>
+<div class="login-page">
+  <div class="login-left">
+    <div class="login-brand">
+      <i class="fa-solid fa-wallet"></i>
+      <span>DogiPay</span>
+    </div>
+    <h1>Daftar Sebagai Merchant</h1>
+    <p>Bergabung dan mulai kelola top-up saldo customer dengan mudah.</p>
+    <div class="login-features">
+      <div class="feat"><i class="fa-solid fa-bolt"></i> Proses Instan</div>
+      <div class="feat"><i class="fa-solid fa-shield-halved"></i> Aman & Terenkripsi</div>
+      <div class="feat"><i class="fa-solid fa-chart-line"></i> Laporan Real-time</div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-card">
+      <h2>Buat Akun Baru 🚀</h2>
+      <p class="login-sub">Daftarkan akun merchant kamu</p>
+
+      <% if (error && error.length > 0) { %>
+        <div class="alert alert-error">
+          <i class="fa-solid fa-circle-exclamation"></i> <%= error[0] %>
+        </div>
+      <% } %>
+      <% if (success && success.length > 0) { %>
+        <div class="alert alert-success">
+          <i class="fa-solid fa-circle-check"></i> <%= success[0] %>
+        </div>
+      <% } %>
+
+      <form action="/register" method="POST">
+        <div class="form-group">
+          <label><i class="fa-solid fa-user"></i> Nama Lengkap</label>
+          <input type="text" name="name" placeholder="Nama merchant kamu" required />
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-envelope"></i> Email</label>
+          <input type="email" name="email" placeholder="merchant@email.com" required />
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-phone"></i> No. Telepon <span style="color:var(--text-muted);font-size:11px">(opsional)</span></label>
+          <input type="text" name="phone" placeholder="08xxxxxxxxxx" />
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-lock"></i> Password</label>
+          <input type="password" name="password" placeholder="Min. 8 karakter" minlength="8" required />
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-lock"></i> Konfirmasi Password</label>
+          <input type="password" name="confirm_password" placeholder="Ulangi password" required />
+        </div>
+        <button type="submit" class="btn-login">
+          Daftar Sekarang <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)">
+        Sudah punya akun? 
+        <a href="/login" style="color:var(--green);font-weight:500">Login di sini</a>
+      </p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

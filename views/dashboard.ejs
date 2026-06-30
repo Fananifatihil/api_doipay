@@ -1,0 +1,276 @@
+<%- include('partials/head') %>
+<% const activePage = 'dashboard' %>
+
+<div class="app-layout">
+  <%- include('partials/sidebar') %>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="breadcrumb"><span>Dashboards</span> / <span class="bc-active">Overview</span></div>
+        <h1 class="page-title">Overview</h1>
+      </div>
+      <div class="topbar-right">
+        <span class="badge-merchant"><i class="fa-solid fa-circle" style="color:#4ade80;font-size:8px"></i> Merchant Aktif</span>
+        <div class="avatar-wrap">
+          <div class="avatar"><%= merchant.name.charAt(0).toUpperCase() %></div>
+          <div>
+            <p class="avatar-name"><%= merchant.name %></p>
+            <p class="avatar-role">Merchant</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if (error && error.length > 0) { %>
+      <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <%= error[0] %></div>
+    <% } %>
+    <% if (success && success.length > 0) { %>
+      <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <%= success[0] %></div>
+    <% } %>
+
+    <!-- Stat Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-arrow-trend-up"></i></div>
+        <div>
+          <p class="stat-label">Total Top-up Hari Ini</p>
+          <p class="stat-value">Rp <%= Number(stats.todayTotal).toLocaleString('id-ID') %></p>
+          <p class="stat-sub"><i class="fa-solid fa-receipt"></i> <%= stats.todayCount %> transaksi</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+        <div>
+          <p class="stat-label">Customer Aktif</p>
+          <p class="stat-value"><%= stats.activeUsers %></p>
+          <p class="stat-sub"><i class="fa-solid fa-user-check"></i> Total terdaftar</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fa-solid fa-calendar-check"></i></div>
+        <div>
+          <p class="stat-label">Total Bulan Ini</p>
+          <p class="stat-value">Rp <%= Number(stats.monthTotal).toLocaleString('id-ID') %></p>
+          <p class="stat-sub"><i class="fa-solid fa-receipt"></i> <%= stats.monthCount %> transaksi</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+
+      <!-- Line Chart - 7 Hari -->
+      <div class="card chart-card">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-chart-line"></i> Top-up 7 Hari Terakhir</h3>
+          <span class="chart-badge">Nominal (Rp)</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartWeekly"></canvas>
+        </div>
+      </div>
+
+      <!-- Bar Chart - Hari Ini per Jam -->
+      <div class="card chart-card">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-chart-bar"></i> Aktivitas Hari Ini</h3>
+          <span class="chart-badge">Per Jam</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartToday"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Transaksi Terbaru -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Transaksi Terbaru</h3>
+        <a href="/riwayat" class="btn-link">Lihat semua <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>No. HP</th>
+              <th>Nominal</th>
+              <th>Waktu</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (recentTransactions.length === 0) { %>
+              <tr>
+                <td colspan="5" class="text-center text-muted" style="padding:32px">
+                  <i class="fa-solid fa-receipt" style="font-size:24px;margin-bottom:8px;display:block;opacity:0.4"></i>
+                  Belum ada transaksi hari ini
+                </td>
+              </tr>
+            <% } else { %>
+              <% recentTransactions.forEach(tx => { %>
+                <tr>
+                  <td>
+                    <div class="customer-cell">
+                      <div class="mini-avatar"><%= tx.customer_name.charAt(0) %></div>
+                      <%= tx.customer_name %>
+                    </div>
+                  </td>
+                  <td class="text-muted"><%= tx.customer_phone %></td>
+                  <td class="amount-green">+Rp <%= Number(tx.amount).toLocaleString('id-ID') %></td>
+                  <td class="text-muted">
+                    <%= new Date(tx.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) %>
+                  </td>
+                  <td>
+                    <span class="badge <%= tx.status === 'success' ? 'badge-success' : 'badge-failed' %>">
+                      <%= tx.status === 'success' ? 'Berhasil' : 'Gagal' %>
+                    </span>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const weeklyData = <%- chartWeekly %>;
+  const todayData  = <%- chartToday %>;
+
+  // Filter jam yang ada data untuk chart hari ini
+  const activeHours = todayData.filter(h => h.total > 0);
+  const todayLabels = activeHours.length > 0 ? todayData.map(h => h.label) : todayData.map(h => h.label);
+
+  const gridColor  = 'rgba(255,255,255,0.05)';
+  const tickColor  = '#64748b';
+  const tooltipBg  = '#1a2035';
+
+  // ---- LINE CHART (7 Hari) ----
+  new Chart(document.getElementById('chartWeekly'), {
+    type: 'line',
+    data: {
+      labels: weeklyData.map(d => d.label),
+      datasets: [{
+        label: 'Total Top-up',
+        data: weeklyData.map(d => d.total),
+        borderColor: '#4ade80',
+        backgroundColor: 'rgba(74,222,128,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#4ade80',
+        pointBorderColor: '#0f1117',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          borderColor: 'rgba(74,222,128,0.3)',
+          borderWidth: 1,
+          titleColor: '#f1f5f9',
+          bodyColor: '#94a3b8',
+          padding: 12,
+          callbacks: {
+            label: ctx => ' Rp ' + Number(ctx.raw).toLocaleString('id-ID'),
+            afterLabel: (ctx) => {
+              const d = weeklyData[ctx.dataIndex];
+              return ` ${d.jumlah} transaksi`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 11 } }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: {
+            color: tickColor, font: { size: 11 },
+            callback: v => 'Rp ' + (v >= 1000000 ? (v/1000000).toFixed(1)+'jt' : v >= 1000 ? (v/1000).toFixed(0)+'rb' : v)
+          }
+        }
+      }
+    }
+  });
+
+  // ---- BAR CHART (Per Jam) ----
+  new Chart(document.getElementById('chartToday'), {
+    type: 'bar',
+    data: {
+      labels: todayData.map(h => h.label),
+      datasets: [{
+        label: 'Jumlah Transaksi',
+        data: todayData.map(h => h.jumlah),
+        backgroundColor: todayData.map(h =>
+          h.jumlah > 0 ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.04)'
+        ),
+        borderColor: todayData.map(h =>
+          h.jumlah > 0 ? '#4ade80' : 'transparent'
+        ),
+        borderWidth: 1,
+        borderRadius: 4,
+        hoverBackgroundColor: '#4ade80',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          borderColor: 'rgba(74,222,128,0.3)',
+          borderWidth: 1,
+          titleColor: '#f1f5f9',
+          bodyColor: '#94a3b8',
+          padding: 12,
+          callbacks: {
+            label: ctx => ` ${ctx.raw} transaksi`,
+            afterLabel: (ctx) => {
+              const d = todayData[ctx.dataIndex];
+              return ` Rp ${Number(d.total).toLocaleString('id-ID')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: {
+            color: tickColor, font: { size: 10 },
+            maxRotation: 45,
+            callback: function(val, i) {
+              // Tampilkan label tiap 3 jam biar tidak penuh
+              return i % 3 === 0 ? this.getLabelForValue(val) : '';
+            }
+          }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 11 }, stepSize: 1 },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

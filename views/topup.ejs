@@ -1,0 +1,253 @@
+<%- include('partials/head') %>
+<% const activePage = 'topup' %>
+<div class="app-layout">
+  <%- include('partials/sidebar') %>
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="breadcrumb"><span>Dashboards</span> / <span class="bc-active">Isi Saldo</span></div>
+        <h1 class="page-title">Isi Saldo Customer</h1>
+      </div>
+      <div class="topbar-right">
+        <span class="badge-merchant"><i class="fa-solid fa-circle" style="color:#4ade80;font-size:8px"></i> Merchant Aktif</span>
+        <div class="avatar-wrap">
+          <div class="avatar"><%= merchant.name.charAt(0).toUpperCase() %></div>
+          <div>
+            <p class="avatar-name"><%= merchant.name %></p>
+            <p class="avatar-role">Merchant</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if (error && error.length > 0) { %>
+      <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <%= error[0] %></div>
+    <% } %>
+
+    <div class="topup-layout">
+      <!-- Step 1: Cari Customer -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-magnifying-glass"></i> Cari Customer</h3>
+        </div>
+        <form action="/topup/cek" method="POST" class="search-form" id="searchForm">
+          <div class="form-group">
+            <label>No. Telepon atau QR Code Customer</label>
+            <div class="input-row">
+              <input type="text" name="phone_or_qr" id="phoneOrQr" placeholder="08xxxxxxxxxx atau scan QR" required />
+              <button type="button" class="btn-secondary" onclick="openScanner()" title="Scan QR">
+                <i class="fa-solid fa-qrcode"></i> Scan QR
+              </button>
+              <button type="submit" class="btn-primary"><i class="fa-solid fa-search"></i> Cek</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Scanner Webcam -->
+        <div id="scannerBox" style="display:none; margin-top:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-weight:600; font-size:14px;"><i class="fa-solid fa-camera"></i> Scan QR Customer</span>
+            <button class="btn-secondary btn-sm" onclick="closeScanner()">Tutup</button>
+          </div>
+          <div style="position:relative; width:100%; max-width:400px; border-radius:12px; overflow:hidden; background:#000;">
+            <video id="scannerVideo" autoplay playsinline style="width:100%; border-radius:12px;"></video>
+            <canvas id="scannerCanvas" style="display:none;"></canvas>
+            <!-- Overlay garis scan -->
+            <div style="position:absolute;top:50%;left:10%;right:10%;height:2px;background:rgba(74,222,128,0.8);transform:translateY(-50%);border-radius:2px;"></div>
+            <div style="position:absolute;inset:0;border:3px solid rgba(74,222,128,0.5);border-radius:12px;pointer-events:none;"></div>
+          </div>
+          <div id="scanStatus" style="margin-top:8px; font-size:13px; color:#888;">Arahkan kamera ke QR code customer...</div>
+        </div>
+
+        <% if (customer) { %>
+          <div class="customer-found">
+            <div class="customer-avatar-lg"><%= customer.name.charAt(0) %></div>
+            <div class="customer-detail">
+              <p class="customer-name-lg"><%= customer.name %></p>
+              <p class="customer-phone-lg"><i class="fa-solid fa-phone"></i> <%= customer.phone %></p>
+              <p class="customer-saldo">Saldo saat ini: <strong>Rp <%= Number(customer.saldo).toLocaleString('id-ID') %></strong></p>
+            </div>
+            <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Ditemukan</span>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Step 2: Pilih Nominal (hanya muncul jika customer ditemukan) -->
+      <% if (customer) { %>
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-wallet"></i> Pilih Nominal Top-up</h3>
+        </div>
+        <form action="/topup/proses" method="POST" id="topupForm">
+          <input type="hidden" name="user_id" value="<%= customer.id %>" />
+          <input type="hidden" name="amount" id="amountInput" value="<%= prefillAmount || '' %>" />
+
+          <div class="nominal-grid">
+            <% [10000, 25000, 50000, 100000, 200000, 500000].forEach(nom => { %>
+              <div class="nominal-card <%= (prefillAmount == nom) ? 'selected' : '' %>"
+                onclick="selectNominal(<%= nom %>, this)">
+                <p>Rp <%= nom.toLocaleString('id-ID') %></p>
+              </div>
+            <% }) %>
+          </div>
+
+          <div class="form-group" style="margin-top:16px">
+            <label>Atau masukkan nominal lain</label>
+            <input type="number" id="customAmount" placeholder="Rp 0" min="1000"
+              value="<%= (prefillAmount && ![10000,25000,50000,100000,200000,500000].includes(Number(prefillAmount))) ? prefillAmount : '' %>"
+              onchange="setCustom(this.value)" />
+          </div>
+
+          <div class="form-group">
+            <label>Catatan (opsional)</label>
+            <input type="text" name="note" placeholder="Contoh: Top-up via kasir" />
+          </div>
+
+          <div class="summary-box" id="summaryBox" style="display:<%= prefillAmount > 0 ? 'block' : 'none' %>">
+            <div class="summary-row"><span>Penerima</span><span><%= customer.name %></span></div>
+            <div class="summary-row"><span>Saldo sebelum</span><span>Rp <%= Number(customer.saldo).toLocaleString('id-ID') %></span></div>
+            <div class="summary-row"><span>Nominal top-up</span><span id="summaryNominal"><%= prefillAmount > 0 ? 'Rp ' + Number(prefillAmount).toLocaleString('id-ID') : '-' %></span></div>
+            <div class="summary-row summary-total"><span>Saldo setelah</span><span id="summaryAfter"><%= prefillAmount > 0 ? 'Rp ' + (Number(customer.saldo) + Number(prefillAmount)).toLocaleString('id-ID') : '-' %></span></div>
+          </div>
+
+          <% if (prefillAmount > 0) { %>
+            <div style="margin-bottom:12px; padding:10px 14px; background:#f0fdf4; border-radius:10px; font-size:13px; color:#1a7f5a;">
+              <i class="fa-solid fa-circle-check"></i> Nominal dari QR sudah terisi otomatis: <strong>Rp <%= Number(prefillAmount).toLocaleString('id-ID') %></strong>
+            </div>
+          <% } %>
+
+          <button type="submit" class="btn-primary btn-full" id="btnProses" <%= prefillAmount > 0 ? '' : 'disabled' %>>
+            <i class="fa-solid fa-bolt"></i> Proses Top-up
+          </button>
+        </form>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- jsQR library untuk decode QR dari webcam -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+  const saldoBefore = <%= customer ? customer.saldo : 0 %>;
+  let selectedAmount = <%= prefillAmount || 0 %>;
+  let scannerStream = null;
+  let scannerInterval = null;
+
+  // Init jika ada prefill amount dari QR
+  if (selectedAmount > 0) {
+    setAmount(selectedAmount);
+  }
+
+  function selectNominal(amount, el) {
+    document.querySelectorAll('.nominal-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('customAmount').value = '';
+    setAmount(amount);
+  }
+
+  function setCustom(val) {
+    document.querySelectorAll('.nominal-card').forEach(c => c.classList.remove('selected'));
+    setAmount(parseFloat(val) || 0);
+  }
+
+  function setAmount(amount) {
+    selectedAmount = amount;
+    document.getElementById('amountInput').value = amount;
+    const after = saldoBefore + amount;
+    document.getElementById('summaryNominal').textContent = 'Rp ' + amount.toLocaleString('id-ID');
+    document.getElementById('summaryAfter').textContent = 'Rp ' + after.toLocaleString('id-ID');
+    document.getElementById('summaryBox').style.display = amount > 0 ? 'block' : 'none';
+    document.getElementById('btnProses').disabled = amount <= 0;
+  }
+
+  // ── Scanner QR ──
+  function openScanner() {
+    document.getElementById('scannerBox').style.display = 'block';
+    const video = document.getElementById('scannerVideo');
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        scannerStream = stream;
+        video.srcObject = stream;
+        video.play();
+        startScanLoop();
+      })
+      .catch(err => {
+        document.getElementById('scanStatus').textContent = 'Tidak bisa akses kamera: ' + err.message;
+      });
+  }
+
+  function closeScanner() {
+    document.getElementById('scannerBox').style.display = 'none';
+    if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
+    if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  }
+
+  function startScanLoop() {
+    const video = document.getElementById('scannerVideo');
+    const canvas = document.getElementById('scannerCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('scanStatus');
+
+    scannerInterval = setInterval(() => {
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (code) {
+        const qrData = code.data;
+        statusEl.textContent = 'QR terdeteksi: ' + qrData;
+        parseQR(qrData);
+        closeScanner();
+      }
+    }, 300);
+  }
+
+  function parseQR(qrData) {
+    // Format QR Nominal: DOGIPAY|CLOSEPAY|PHONE:08xxx|NOM:50000|CAT:|TS:timestamp
+    // Format QR Identitas: DogiPay:08xxx atau qr_code dari DB
+    const phoneInput = document.getElementById('phoneOrQr');
+
+    if (qrData.startsWith('DOGIPAY|CLOSEPAY|')) {
+      // QR Nominal — extract phone dan nominal
+      const parts = {};
+      qrData.split('|').forEach(part => {
+        const [key, val] = part.split(':');
+        if (key && val !== undefined) parts[key] = val;
+      });
+
+      const phone = parts['PHONE'] || '';
+      const nom = parseFloat(parts['NOM']) || 0;
+
+      if (phone) phoneInput.value = phone;
+
+      if (nom > 0) {
+        // Submit form cek customer dengan prefill nominal
+        const form = document.getElementById('searchForm');
+        const hiddenNom = document.createElement('input');
+        hiddenNom.type = 'hidden';
+        hiddenNom.name = 'prefill_amount';
+        hiddenNom.value = nom;
+        form.appendChild(hiddenNom);
+        form.submit();
+      } else {
+        document.getElementById('searchForm').submit();
+      }
+
+    } else if (qrData.startsWith('DogiPay:')) {
+      // QR Identitas lama
+      phoneInput.value = qrData.replace('DogiPay:', '');
+      document.getElementById('searchForm').submit();
+    } else {
+      // Anggap sebagai phone/qr_code biasa
+      phoneInput.value = qrData;
+      document.getElementById('searchForm').submit();
+    }
+  }
+</script>
+</body>
+</html>

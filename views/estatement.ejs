@@ -1,0 +1,179 @@
+<%- include('partials/head') %>
+<% const activePage = 'estatement' %>
+
+<div class="app-layout">
+  <%- include('partials/sidebar') %>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="breadcrumb"><span>Dashboards</span> / <span class="bc-active">E-Statement</span></div>
+        <h1 class="page-title">E-Statement</h1>
+      </div>
+      <div class="topbar-right">
+        <span class="badge-merchant"><i class="fa-solid fa-circle" style="color:#4ade80;font-size:8px"></i> Merchant Aktif</span>
+        <div class="avatar-wrap">
+          <div class="avatar"><%= merchant.name.charAt(0).toUpperCase() %></div>
+          <div>
+            <p class="avatar-name"><%= merchant.name %></p>
+            <p class="avatar-role">Merchant</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if (error && error.length > 0) { %>
+      <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <%= error[0] %></div>
+    <% } %>
+
+    <!-- Filter Bulan & Tahun -->
+    <div class="card" style="margin-bottom:20px">
+      <form action="/estatement" method="GET" class="filter-row">
+        <div class="filter-group">
+          <label><i class="fa-solid fa-calendar"></i> Bulan</label>
+          <select name="month">
+            <% const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+               months.forEach((m, i) => { %>
+              <option value="<%= i+1 %>" <%= selectedMonth === i+1 ? 'selected' : '' %>><%= m %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label><i class="fa-solid fa-calendar-days"></i> Tahun</label>
+          <select name="year">
+            <% availableYears.forEach(y => { %>
+              <option value="<%= y %>" <%= selectedYear === y ? 'selected' : '' %>><%= y %></option>
+            <% }) %>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary" style="align-self:flex-end">
+          <i class="fa-solid fa-filter"></i> Tampilkan
+        </button>
+        <a href="/estatement" class="btn-outline" style="align-self:flex-end">
+          <i class="fa-solid fa-rotate-left"></i> Reset
+        </a>
+      </form>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fa-solid fa-money-bill-wave"></i></div>
+        <div>
+          <p class="stat-label">Total Top-up Berhasil</p>
+          <p class="stat-value">Rp <%= Number(summary.total_nominal || 0).toLocaleString('id-ID') %></p>
+          <p class="stat-sub"><i class="fa-solid fa-receipt"></i> <%= summary.total_transaksi || 0 %> transaksi</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fa-solid fa-circle-check"></i></div>
+        <div>
+          <p class="stat-label">Transaksi Berhasil</p>
+          <p class="stat-value"><%= summary.berhasil || 0 %></p>
+          <p class="stat-sub"><i class="fa-solid fa-users"></i> <%= summary.unique_customer || 0 %> customer unik</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fa-solid fa-circle-xmark"></i></div>
+        <div>
+          <p class="stat-label">Transaksi Gagal</p>
+          <p class="stat-value"><%= summary.gagal || 0 %></p>
+          <p class="stat-sub"><i class="fa-solid fa-triangle-exclamation"></i> Perlu dicek</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabel Transaksi -->
+    <div class="card">
+      <div class="card-header">
+        <h3>
+          <i class="fa-solid fa-file-invoice"></i>
+          Statement —
+          <% const mn = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; %>
+          <%= mn[selectedMonth - 1] %> <%= selectedYear %>
+        </h3>
+        <% if (transactions.length > 0) { %>
+          <button onclick="printStatement()" class="btn-outline">
+            <i class="fa-solid fa-print"></i> Print / PDF
+          </button>
+        <% } %>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Customer</th>
+              <th>No. HP</th>
+              <th>Nominal</th>
+              <th>Saldo Sebelum</th>
+              <th>Saldo Sesudah</th>
+              <th>Catatan</th>
+              <th>Waktu</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (transactions.length === 0) { %>
+              <tr>
+                <td colspan="9" class="text-center text-muted" style="padding:40px">
+                  <i class="fa-solid fa-file-circle-xmark" style="font-size:28px;margin-bottom:10px;display:block;opacity:0.4"></i>
+                  Tidak ada transaksi pada <%= mn[selectedMonth - 1] %> <%= selectedYear %>
+                </td>
+              </tr>
+            <% } else { %>
+              <% transactions.forEach((tx, i) => { %>
+                <tr>
+                  <td class="text-muted"><%= i + 1 %></td>
+                  <td>
+                    <div class="customer-cell">
+                      <div class="mini-avatar"><%= tx.customer_name.charAt(0) %></div>
+                      <%= tx.customer_name %>
+                    </div>
+                  </td>
+                  <td class="text-muted"><%= tx.customer_phone %></td>
+                  <td class="amount-green">+Rp <%= Number(tx.amount).toLocaleString('id-ID') %></td>
+                  <td class="text-muted">Rp <%= Number(tx.saldo_before).toLocaleString('id-ID') %></td>
+                  <td class="text-muted">Rp <%= Number(tx.saldo_after).toLocaleString('id-ID') %></td>
+                  <td class="text-muted"><%= tx.note || '-' %></td>
+                  <td class="text-muted">
+                    <%= new Date(tx.created_at).toLocaleDateString('id-ID') %>
+                    <span style="display:block;font-size:11px">
+                      <%= new Date(tx.created_at).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge <%= tx.status === 'success' ? 'badge-success' : 'badge-failed' %>">
+                      <%= tx.status === 'success' ? 'Berhasil' : 'Gagal' %>
+                    </span>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+          <% if (transactions.length > 0) { %>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="padding:12px;font-weight:600;font-size:13px">Total</td>
+                <td class="amount-green" style="padding:12px;font-weight:700">
+                  Rp <%= Number(summary.total_nominal || 0).toLocaleString('id-ID') %>
+                </td>
+                <td colspan="5"></td>
+              </tr>
+            </tfoot>
+          <% } %>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function printStatement() {
+  window.print();
+}
+</script>
+
+</body>
+</html>

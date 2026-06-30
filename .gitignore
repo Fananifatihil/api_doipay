@@ -1,0 +1,4 @@
+node_modules/
+.env
+.sftp.json
+*.log
