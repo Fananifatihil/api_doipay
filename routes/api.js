@@ -16,7 +16,8 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    timezone: '+07:00'
 });
 
 const notificationClients = new Map();
@@ -377,7 +378,7 @@ router.post('/transfer', verifyTokenAndStatus, async (req, res) => {
         }
 
         const match = await bcrypt.compare(pin, sender.password);
-        
+
         if (!match) {
             await connection.rollback();
             return res.status(401).json({ success: false, message: "PIN salah." });
