@@ -304,7 +304,7 @@ router.post('/transfer', verifyTokenAndStatus, async (req, res) => {
     const connection = await pool.getConnection();
 
     try {
-        const { receiverPhone, amount, catatan, requestCode } = req.body;
+        const { receiverPhone, amount, catatan, requestCode, pin } = req.body;
         const senderId = req.user.id;
         let cleanAmount = parseFloat(amount);
         let cleanCatatan = catatan || null;
@@ -361,7 +361,7 @@ router.post('/transfer', verifyTokenAndStatus, async (req, res) => {
         }
 
         const [senderRows] = await connection.query(
-            'SELECT id, name, phone, saldo FROM users WHERE id = ? FOR UPDATE',
+            'SELECT id, name, phone, saldo, password FROM users WHERE id = ? FOR UPDATE',
             [senderId]
         );
 
@@ -370,6 +370,18 @@ router.post('/transfer', verifyTokenAndStatus, async (req, res) => {
             return res.status(400).json({ success: false, message: "Data pengirim tidak valid." });
         }
         const sender = senderRows[0];
+
+        if (!pin) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "PIN wajib diisi." });
+        }
+
+        const match = await bcrypt.compare(pin, sender.password);
+        
+        if (!match) {
+            await connection.rollback();
+            return res.status(401).json({ success: false, message: "PIN salah." });
+        }
 
         if (String(sender.phone) === String(finalReceiverPhone).trim()) {
             await connection.rollback();
