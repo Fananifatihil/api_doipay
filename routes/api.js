@@ -680,7 +680,7 @@ router.post('/savings', verifyTokenAndStatus, async (req, res) => {
 // ==========================================
 // H. RIWAYAT TRANSAKSI
 // Hanya menampilkan keluar/masuk uang:
-// topup, transfer_in, transfer_out
+// topup, transfer_in, transfer_out, system
 // ==========================================
 router.get('/history', verifyTokenAndStatus, async (req, res) => {
     try {
@@ -691,7 +691,7 @@ router.get('/history', verifyTokenAndStatus, async (req, res) => {
         let whereClause = `WHERE n.user_id = ? AND n.type IN ('topup', 'transfer_in', 'transfer_out')`;
         const params = [userId];
 
-        if (type && ['topup', 'transfer_in', 'transfer_out'].includes(type)) {
+        if (type && ['topup', 'transfer_in', 'transfer_out', 'system'].includes(type)) {
             whereClause += ' AND n.type = ?';
             params.push(type);
         }
