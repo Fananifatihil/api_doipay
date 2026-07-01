@@ -449,7 +449,7 @@ router.post('/transfer', verifyTokenAndStatus, async (req, res) => {
             'INSERT INTO notifications (user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?)',
             [
                 senderId,
-                'Realtime Transfer',
+                'Transfer Keluar',
                 `Kamu baru melakukan transfer senilai Rp${nominalFmt} kepada ${receiver.name} pada ${tgl} ${jam} (WIB). Jika kamu tidak melakukan ini, segera hubungi 1500130.`,
                 'transfer_out',
                 trxResult.insertId
@@ -460,7 +460,7 @@ router.post('/transfer', verifyTokenAndStatus, async (req, res) => {
             'INSERT INTO notifications (user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?)',
             [
                 receiver.id,
-                'Realtime Transfer',
+                'Transfer Masuk',
                 `Kamu baru menerima transfer senilai Rp${nominalFmt} dari ${sender.name} pada ${tgl} ${jam} (WIB). Jika kamu tidak merasa menerima ini, segera hubungi 1500130.`,
                 'transfer_in',
                 trxResult.insertId
