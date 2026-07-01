@@ -688,12 +688,14 @@ router.get('/history', verifyTokenAndStatus, async (req, res) => {
         const { type, date_from, date_to } = req.query;
 
         // Batasi hanya tipe transaksi keuangan, TIDAK termasuk system/promo
-        let whereClause = `WHERE n.user_id = ? AND n.type IN ('topup', 'transfer_in', 'transfer_out')`;
+        let whereClause = `WHERE n.user_id = ?`;
         const params = [userId];
 
         if (type && ['topup', 'transfer_in', 'transfer_out', 'system'].includes(type)) {
             whereClause += ' AND n.type = ?';
             params.push(type);
+        } else {
+            whereClause += ` AND n.type IN ('topup', 'transfer_in', 'transfer_out', 'system')`;
         }
 
         if (date_from) {
