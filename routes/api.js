@@ -1252,4 +1252,49 @@ const emitNotification = (userId, data) => {
     }
 };
 
+// ==========================================
+// UBAH PIN
+// ==========================================
+router.put('/change-pin', verifyTokenAndStatus, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { pinLama, pinBaru } = req.body;
+
+        if (!pinLama || !pinBaru) {
+            return res.status(400).json({ success: false, message: "PIN lama dan PIN baru wajib diisi." });
+        }
+
+        if (!/^\d{6}$/.test(pinBaru)) {
+            return res.status(400).json({ success: false, message: "PIN baru harus berupa 6 digit angka." });
+        }
+
+        // Ambil data PIN lama dari database
+        const [rows] = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
+        if (rows.length === 0) return res.status(404).json({ success: false, message: "User tidak ditemukan." });
+
+        const user = rows[0];
+
+        // Cocokkan PIN lama
+        const match = await bcrypt.compare(pinLama, user.password);
+        if (!match) {
+            return res.status(401).json({ success: false, message: "PIN lama yang Anda masukkan salah." });
+        }
+
+        // Hash PIN baru dan simpan
+        const saltRounds = 10;
+        const hashedPin = await bcrypt.hash(pinBaru, saltRounds);
+
+        await pool.query(
+            'UPDATE users SET password = ?, pin = ? WHERE id = ?',
+            [hashedPin, hashedPin, userId]
+        );
+
+        res.status(200).json({ success: true, message: "PIN berhasil diubah. Jaga kerahasiaan PIN Anda." });
+
+    } catch (error) {
+        console.error("Error Change PIN:", error.message);
+        res.status(500).json({ success: false, message: "Kesalahan internal saat mengubah PIN." });
+    }
+});
+
 module.exports = router;
