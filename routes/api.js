@@ -146,7 +146,7 @@ router.post('/register', async (req, res) => {
 // C. Login
 router.post('/login', async (req, res) => {
     try {
-        const { phone, pin } = req.body;
+        const { phone, pin, device_name } = req.body;
 
         if (!phone || !pin) return res.status(400).json({ success: false, message: "Harap isi Nomor HP dan PIN" });
 
@@ -166,6 +166,16 @@ router.post('/login', async (req, res) => {
             process.env.SESSION_SECRET || 'dogipay_rahasia_super_aman',
             { expiresIn: '7d' }
         );
+
+        try {
+            const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+            await pool.query(
+                'INSERT INTO user_sessions (user_id, token, device_name, ip_address) VALUES (?, ?, ?, ?)',
+                [user.id, accessToken, device_name || 'Browser/Unknown Device', ipAddress]
+            );
+        } catch (sessionErr) {
+            console.error("Gagal mencatat sesi perangkat:", sessionErr.message);
+        }
 
         res.status(200).json({
             success: true,
@@ -1296,6 +1306,60 @@ router.put('/change-pin', verifyTokenAndStatus, async (req, res) => {
     } catch (error) {
         console.error("Error Change PIN:", error.message);
         res.status(500).json({ success: false, message: "Kesalahan internal saat mengubah PIN." });
+    }
+});
+
+// ==========================================
+// KONTROL PERANGKAT TERHUBUNG
+// ==========================================
+
+// 1. Ambil semua perangkat yang sedang terhubung
+router.get('/perangkat', verifyTokenAndStatus, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const currentToken = req.headers['authorization']?.split(' ')[1] || req.query.token;
+
+        const [rows] = await pool.query(
+            'SELECT id, device_name, ip_address, updated_at, token FROM user_sessions WHERE user_id = ? ORDER BY updated_at DESC',
+            [userId]
+        );
+
+        // Petakan data untuk menandai mana perangkat yang sedang dipegang user saat ini
+        const perangkatList = rows.map(session => ({
+            id: session.id,
+            device_name: session.device_name,
+            ip_address: session.ip_address,
+            Terakhir_aktif: session.updated_at,
+            is_current: session.token === currentToken
+        }));
+
+        res.status(200).json({ success: true, data: perangkatList });
+    } catch (error) {
+        console.error("Error GET /perangkat:", error.message);
+        res.status(500).json({ success: false, message: "Gagal memuat daftar perangkat." });
+    }
+});
+
+// 2. Hapus sesi perangkat tertentu (Log out perangkat lain)
+router.delete('/perangkat/:id', verifyTokenAndStatus, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const sessionId = req.params.id;
+
+        // Pastikan sesi yang dihapus benar-benar milik user yang merequest
+        const [result] = await pool.query(
+            'DELETE FROM user_sessions WHERE id = ? AND user_id = ?',
+            [sessionId, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Sesi perangkat tidak ditemukan." });
+        }
+
+        res.status(200).json({ success: true, message: "Perangkat berhasil diputuskan." });
+    } catch (error) {
+        console.error("Error DELETE /perangkat:", error.message);
+        res.status(500).json({ success: false, message: "Gagal memutuskan perangkat." });
     }
 });
 
